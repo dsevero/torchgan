@@ -129,7 +129,8 @@ class BaseTrainer(object):
             setattr(self, key, val)
 
         os.makedirs(self.checkpoints.rsplit("/", 1)[0], exist_ok=True)
-        os.makedirs(self.recon, exist_ok=True)
+        if recon is not None:
+            os.makedirs(self.recon, exist_ok=True)
 
     def save_model(self, epoch, save_items=None):
         r"""Function saves the model and some necessary information along with it. List of items

@@ -451,9 +451,10 @@ class ImageVisualize(Visualize):
             image (Image): The generated image.
             model (str): The name of the model which generated the ``image``.
         """
-        save_path = "{}/epoch{}_{}.png".format(trainer.recon, self.step, model)
-        print("Generating and Saving Images to {}".format(save_path))
-        torchvision.utils.save_image(image, save_path)
+        if trainer.recon is not None:
+            save_path = "{}/epoch{}_{}.png".format(trainer.recon, self.step, model)
+            print("Generating and Saving Images to {}".format(save_path))
+            torchvision.utils.save_image(image, save_path)
 
     def log_visdom(self, trainer, image, model):
         r"""Logs a generated image in visdom at the end of an epoch.
