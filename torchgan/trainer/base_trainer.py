@@ -369,7 +369,7 @@ class BaseTrainer(object):
         for scheduler in self.schedulers:
             scheduler.step()
 
-    def train(self, data_loader, **kwargs):
+    def train(self, data_loader=None, X=None, y=None, **kwargs):
         r"""Uses the information passed by the user while creating the object and trains the model.
         It iterates over the epochs and the DataLoader and calls the functions for training the models
         and logging the required variables.
@@ -395,6 +395,8 @@ class BaseTrainer(object):
             getattr(self, name).zero_grad()
 
         master_bar_iter = master_bar(range(self.start_epoch, self.epochs))
+        self.real_inputs = X
+        self.labels = y
         for epoch in master_bar_iter:
 
             start_time = time.time()
@@ -403,20 +405,31 @@ class BaseTrainer(object):
             for model in self.model_names:
                 getattr(self, model).train()
 
-            for progress_bar_iter, data in zip(
-                progress_bar(range(len(data_loader)), parent=master_bar_iter),
-                data_loader,
-            ):
+            if data_loader is not None:
+                for progress_bar_iter, data in zip(
+                    progress_bar(range(len(data_loader)), parent=master_bar_iter),
+                    data_loader,
+                ):
 
-                master_bar_iter.child.comment = f"Epoch {epoch+1} Progress"
+                    master_bar_iter.child.comment = f"Epoch {epoch+1} Progress"
 
-                if type(data) is tuple or type(data) is list:
-                    self.real_inputs = data[0].to(self.device)
-                    self.labels = data[1].to(self.device)
-                elif type(data) is torch.Tensor:
-                    self.real_inputs = data.to(self.device)
-                else:
-                    self.real_inputs = data
+                    if type(data) is tuple or type(data) is list:
+                        self.real_inputs = data[0].to(self.device)
+                        self.labels = data[1].to(self.device)
+                    elif type(data) is torch.Tensor:
+                        self.real_inputs = data.to(self.device)
+                    else:
+                        self.real_inputs = data
+
+                    lgen, ldis, gen_iter, dis_iter = self.train_iter()
+                    self.loss_information["generator_losses"] += lgen
+                    self.loss_information["discriminator_losses"] += ldis
+                    self.loss_information["generator_iters"] += gen_iter
+                    self.loss_information["discriminator_iters"] += dis_iter
+
+                    self.logger.run_mid_epoch(self)
+            elif X is not None and y is None:
+                # master_bar_iter.child.comment = f"Epoch {epoch+1} Progress"
 
                 lgen, ldis, gen_iter, dis_iter = self.train_iter()
                 self.loss_information["generator_losses"] += lgen
@@ -425,6 +438,18 @@ class BaseTrainer(object):
                 self.loss_information["discriminator_iters"] += dis_iter
 
                 self.logger.run_mid_epoch(self)
+            elif X is not None and y is not None:
+                # master_bar_iter.child.comment = f"Epoch {epoch+1} Progress"
+
+                lgen, ldis, gen_iter, dis_iter = self.train_iter()
+                self.loss_information["generator_losses"] += lgen
+                self.loss_information["discriminator_losses"] += ldis
+                self.loss_information["generator_iters"] += gen_iter
+                self.loss_information["discriminator_iters"] += dis_iter
+
+                self.logger.run_mid_epoch(self)
+            else:
+                raise ValueError()
 
             if "save_items" in kwargs:
                 self.save_model(epoch, kwargs["save_items"])
@@ -454,6 +479,6 @@ class BaseTrainer(object):
             self.save_model(-1)
         self.logger.close()
 
-    def __call__(self, data_loader, **kwargs):
-        self.batch_size = data_loader.batch_size
-        self.train(data_loader, **kwargs)
+    def __call__(self, data_loader=None, X=None, y=None, **kwargs):
+        self.batch_size = data_loader.batch_size if data_loader is not None else len(X)
+        self.train(data_loader, X, y, **kwargs)
