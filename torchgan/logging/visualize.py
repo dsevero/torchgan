@@ -468,17 +468,17 @@ class ImageVisualize(Visualize):
 
     def __call__(self, trainer, **kwargs):
         pos = 0
-        for model in trainer.model_names:
-            if isinstance(getattr(trainer, model), Generator):
-                generator = getattr(trainer, model)
-                with torch.no_grad():
-                    image = generator(*self.test_noise[pos])
-                    image = torchvision.utils.make_grid(
-                        image, nrow=self.nrow, normalize=True, range=(-1, 1)
-                    )
-                    super(ImageVisualize, self).__call__(
-                        trainer, image, model, **kwargs
-                    )
-                self.step -= 1
-                pos = pos + 1
+        # for model in trainer.model_names:
+        #     if isinstance(getattr(trainer, model), Generator):
+        #         generator = getattr(trainer, model)
+        #         with torch.no_grad():
+        #             image = generator(*self.test_noise[pos])
+        #             image = torchvision.utils.make_grid(
+        #                 image, nrow=self.nrow, normalize=True, range=(-1, 1)
+        #             )
+        #             super(ImageVisualize, self).__call__(
+        #                 trainer, image, model, **kwargs
+        #             )
+        #         self.step -= 1
+        #         pos = pos + 1
         self.step += 1 if pos > 0 else 0

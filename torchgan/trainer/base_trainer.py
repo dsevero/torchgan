@@ -369,7 +369,7 @@ class BaseTrainer(object):
         for scheduler in self.schedulers:
             scheduler.step()
 
-    def train(self, data_loader=None, X=None, y=None, **kwargs):
+    def train(self, data_loader=None, sampler=None, **kwargs):
         r"""Uses the information passed by the user while creating the object and trains the model.
         It iterates over the epochs and the DataLoader and calls the functions for training the models
         and logging the required variables.
@@ -395,6 +395,7 @@ class BaseTrainer(object):
             getattr(self, name).zero_grad()
 
         master_bar_iter = master_bar(range(self.start_epoch, self.epochs))
+        X, y = sampler.sample()
         self.real_inputs = X
         self.labels = y
         for epoch in master_bar_iter:
@@ -479,6 +480,7 @@ class BaseTrainer(object):
             self.save_model(-1)
         self.logger.close()
 
-    def __call__(self, data_loader=None, X=None, y=None, **kwargs):
-        self.batch_size = data_loader.batch_size if data_loader is not None else len(X)
-        self.train(data_loader, X, y, **kwargs)
+    def __call__(self, data_loader=None, sampler=None, **kwargs):
+        self.batch_size = (len(data_loader) if data_loader is not None
+                           else len(sampler))
+        self.train(data_loader, sampler, **kwargs)
